@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Vessel Tracker",
+    "slug": "vessel_tracker",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.inzori.example.aisfrontend",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs access to your location to show your position on the map.",
+        "NSLocationAlwaysUsageDescription": "This app needs access to your location even when the app is in the background.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs access to your location always and when in use."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.inzori.example.aisfrontend"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsDownloadToken": "sk.eyJ1IjoidHJrZmFiaSIsImEiOiJjbWRlYjhqa2cwMHI4MmpzZ2dzd3Y1MTRsIn0.URBEdY8QcJmfEZt_a5dmfg"
+        }
+      ]
+    ]
+  }
+}
