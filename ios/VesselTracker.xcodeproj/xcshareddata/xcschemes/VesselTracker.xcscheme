@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "aisfrontend.app"
-               BlueprintName = "aisfrontend"
-               ReferencedContainer = "container:aisfrontend.xcodeproj">
+               BuildableName = "VesselTracker.app"
+               BlueprintName = "VesselTracker"
+               ReferencedContainer = "container:VesselTracker.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "aisfrontendTests.xctest"
-               BlueprintName = "aisfrontendTests"
-               ReferencedContainer = "container:aisfrontend.xcodeproj">
+               BuildableName = "VesselTrackerTests.xctest"
+               BlueprintName = "VesselTrackerTests"
+               ReferencedContainer = "container:VesselTracker.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "aisfrontend.app"
-            BlueprintName = "aisfrontend"
-            ReferencedContainer = "container:aisfrontend.xcodeproj">
+            BuildableName = "VesselTracker.app"
+            BlueprintName = "VesselTracker"
+            ReferencedContainer = "container:VesselTracker.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "aisfrontend.app"
-            BlueprintName = "aisfrontend"
-            ReferencedContainer = "container:aisfrontend.xcodeproj">
+            BuildableName = "VesselTracker.app"
+            BlueprintName = "VesselTracker"
+            ReferencedContainer = "container:VesselTracker.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

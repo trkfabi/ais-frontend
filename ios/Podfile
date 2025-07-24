@@ -16,7 +16,7 @@ prepare_react_native_project!
 # @generated begin @rnmapbox/maps-rnmapboxmapsimpl - expo prebuild (DO NOT MODIFY) sync-79e8995cde603c388bfc8eaa92443f2f15fab317
 $RNMapboxMapsDownloadToken = 'sk.eyJ1IjoidHJrZmFiaSIsImEiOiJjbWRlYjhqa2cwMHI4MmpzZ2dzd3Y1MTRsIn0.URBEdY8QcJmfEZt_a5dmfg'
 # @generated end @rnmapbox/maps-rnmapboxmapsimpl
-target 'aisfrontend' do
+target 'VesselTracker' do
   use_expo_modules!
 
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
