@@ -95,7 +95,7 @@ packagingOptions {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.inzori.example.aisfrontend'
+    namespace "com.vesseltracker"
     defaultConfig {
         applicationId 'com.inzori.example.aisfrontend'
         minSdkVersion rootProject.ext.minSdkVersion
