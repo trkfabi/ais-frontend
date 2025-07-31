@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import Mapbox from "@rnmapbox/maps";
 import {
   StyleSheet,
@@ -45,6 +45,7 @@ const Map = () => {
   const [isRecentering, setIsRecentering] = useState(false);
   const prevCenter = useRef<GeoJSON.Position | null>(null);
   const prevZoom = useRef<number | null>(null);
+  const pulseAnimation = useRef(new Animated.Value(1)).current;
 
   // Calculate initial bounds when user location is obtained
   useEffect(() => {
@@ -57,6 +58,26 @@ const Map = () => {
       });
     }
   }, [userLocation, actualBounds]);
+
+  // Pulse animation for user location marker
+  useEffect(() => {
+    if (userLocation) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnimation, {
+            toValue: 1.5,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnimation, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }
+  }, [userLocation]);
 
   const buttonOpacity = useRef(new Animated.Value(1)).current;
 
@@ -74,6 +95,10 @@ const Map = () => {
     },
     enabled: !!actualBounds,
     refetchInterval: FETCH_REFRESH_INTERVAL,
+    staleTime: 2000, // Los datos se consideran frescos por 2 segundos
+    gcTime: 300000, // Cache por 5 minutos
+    refetchOnWindowFocus: false, // No refetch al volver a la app
+    refetchOnMount: false, // No refetch al montar el componente
   });
 
   const startWatchingPosition = () => {
@@ -239,6 +264,10 @@ const Map = () => {
     }
   };
 
+  const handleVesselPress = useCallback((vessel: Vessel) => {
+    setSelectedVessel(vessel);
+  }, []);
+
   if (!initialRegionSet) {
     return (
       <View style={styles.centeredContainer}>
@@ -266,11 +295,19 @@ const Map = () => {
             "vessel-stationary": require("../assets/vessel_stationary.png"),
           }}
         />
+
+        {/* User location marker */}
+        {userLocation && (
+          <Mapbox.PointAnnotation id="user-location" coordinate={userLocation}>
+            <View style={styles.userLocationDot}></View>
+          </Mapbox.PointAnnotation>
+        )}
+
         {actualZoom >= 12 && (
           <VesselAnnotations
-            //key={vessels.length} //this makes the map to re-render when the vessels change
+            key="vessels-stable" // Key estable para evitar re-mounting
             vessels={vessels}
-            onVesselPress={setSelectedVessel}
+            onVesselPress={handleVesselPress}
           />
         )}
       </Mapbox.MapView>
@@ -426,6 +463,34 @@ const styles = StyleSheet.create({
     padding: 4,
     alignItems: "center",
     justifyContent: "center",
+  },
+  userLocationMarker: {
+    width: 30,
+    height: 30,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  userLocationDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#007AFF",
+    borderWidth: 2,
+    borderColor: "white",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  userLocationPulse: {
+    position: "absolute",
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: "#007AFF",
+    opacity: 0.4,
   },
 });
 
