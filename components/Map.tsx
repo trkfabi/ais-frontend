@@ -13,7 +13,7 @@ import {
 import Geolocation from "react-native-geolocation-service";
 import { useQuery } from "@tanstack/react-query";
 import { Vessel, Bounds } from "../config/types";
-import VesselAnnotations from "./Annotation";
+import VesselAnnotations from "./VesselAnnotations";
 import { fetchVessels } from "../api/Api";
 
 Mapbox.setAccessToken(
@@ -328,7 +328,7 @@ const Map = () => {
             style={styles.closeButton}
             onPress={() => setSelectedVessel(null)}
           >
-            <Text style={{ color: "orange" }}>CLOSE</Text>
+            <Text style={{ color: "gray" }}>CLOSE</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -440,9 +440,10 @@ const styles = StyleSheet.create({
   callout: {
     position: "absolute",
     top: 110,
-    right: 20,
+    left: 20,
     width: 220,
     backgroundColor: "white",
+    opacity: 0.8,
     padding: 10,
     borderRadius: 8,
     shadowColor: "#000",
@@ -456,11 +457,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   closeButton: {
-    marginTop: 6,
-    borderWidth: 1,
-    borderColor: "gray",
-    borderRadius: 8,
-    padding: 4,
+    marginTop: 8,
+    borderTopColor: "silver",
+    borderTopWidth: 1,
+    // borderBottomColor: "gray",
+    // borderBottomWidth: 1,
+    // borderRadius: 8,
+    paddingTop: 8,
+
     alignItems: "center",
     justifyContent: "center",
   },
