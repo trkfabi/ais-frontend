@@ -427,8 +427,8 @@ const styles = StyleSheet.create({
   },
   zoomLevelContainer: {
     position: "absolute",
-    top: 70,
-    right: 20,
+    top: 10,
+    right: 5,
     backgroundColor: "rgba(0,0,0,0.6)",
     padding: 8,
     borderRadius: 8,
@@ -439,8 +439,8 @@ const styles = StyleSheet.create({
   },
   callout: {
     position: "absolute",
-    top: 110,
-    left: 20,
+    top: 50,
+    left: 5,
     width: 220,
     backgroundColor: "white",
     opacity: 0.8,
