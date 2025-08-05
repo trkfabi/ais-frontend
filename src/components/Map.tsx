@@ -291,8 +291,8 @@ const Map = () => {
         />
         <Mapbox.Images
           images={{
-            "vessel-moving": require("../assets/vessel_moving.png"),
-            "vessel-stationary": require("../assets/vessel_stationary.png"),
+            "vessel-moving": require("../../assets/vessel_moving.png"),
+            "vessel-stationary": require("../../assets/vessel_stationary.png"),
           }}
         />
 

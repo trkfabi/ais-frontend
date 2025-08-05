@@ -1,4 +1,4 @@
-import { Vessel, Vessels, Bounds } from "../config/types";
+import { Vessel, Vessels, Bounds } from "../../config/types";
 
 import { fixBoundsOrder, getUTCMinutesAgo } from "../utils/Conversion";
 import * as Device from "expo-device";
