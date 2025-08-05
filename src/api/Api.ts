@@ -1,10 +1,11 @@
-import { Vessel, Vessels, Bounds } from "../../config/types";
-
+import type { Vessel, Vessels, Bounds } from "../config/types";
+// @ts-ignore: Ignore missing module for environment variable import
+import { EXPO_PUBLIC_API_URL } from "@env";
 import { fixBoundsOrder, getUTCMinutesAgo } from "../utils/Conversion";
 import * as Device from "expo-device";
 
-const BASE_URL = "https://srv619903.hstgr.cloud/ais/api/";
-//process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api/";
+const BASE_URL =
+  EXPO_PUBLIC_API_URL || "https://srv619903.hstgr.cloud/ais/api/";
 
 export const fetchVessels = async (
   actualBounds: Bounds = null,
@@ -23,7 +24,7 @@ export const fetchVessels = async (
       "x-device-id": deviceId,
     },
   });
-  console.log("Fetching vessels from:", apiUrl);
+  //console.log("Fetching vessels from:", apiUrl);
 
   if (!response.ok) {
     throw new Error("Failed to fetch vessels");

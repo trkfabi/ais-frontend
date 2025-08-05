@@ -15,10 +15,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Vessel, Bounds } from "../config/types";
 import VesselAnnotations from "./VesselAnnotations";
 import { fetchVessels } from "../api/Api";
+// @ts-ignore: Ignore missing module for environment variable import
+import { EXPO_PUBLIC_MAPBOX_PK } from "@env";
+import { useDispatch } from "react-redux";
+import { setMapView } from "../store/mapSlice";
 
-Mapbox.setAccessToken(
-  "pk.eyJ1IjoidHJrZmFiaSIsImEiOiJjbWFwaXE1dzAwZnk2MmxyM3Z4dmlzcTFmIn0.0NV4j-BIZt5mDGG5GMu4gw"
-);
+Mapbox.setAccessToken(EXPO_PUBLIC_MAPBOX_PK);
 
 const INITIAL_ZOOM = 12;
 const FALLBACK_CENTER = [40.6464364, -74.0999962]; // NY Harbor
@@ -46,6 +48,8 @@ const Map = () => {
   const prevCenter = useRef<GeoJSON.Position | null>(null);
   const prevZoom = useRef<number | null>(null);
   const pulseAnimation = useRef(new Animated.Value(1)).current;
+
+  const dispatch = useDispatch();
 
   // Calculate initial bounds when user location is obtained
   useEffect(() => {
@@ -231,6 +235,16 @@ const Map = () => {
       ) {
         setActualCenter(center);
         setActualZoom(zoom);
+
+        // Guardar en Redux
+        dispatch(
+          setMapView({
+            latitude: center[1],
+            longitude: center[0],
+            zoom,
+          })
+        );
+
         prevCenter.current = center;
         prevZoom.current = zoom;
         if (mapRef.current) {
@@ -351,7 +365,7 @@ const Map = () => {
         style={{
           alignItems: "center",
           position: "absolute",
-          bottom: 60,
+          bottom: 5,
           alignSelf: "center",
         }}
       >
@@ -406,7 +420,7 @@ const styles = StyleSheet.create({
   },
   recenterButton: {
     position: "absolute",
-    bottom: 40,
+    bottom: 30,
     alignSelf: "center",
     borderRadius: 25,
     width: 50,

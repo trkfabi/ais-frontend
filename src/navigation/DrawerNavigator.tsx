@@ -5,7 +5,7 @@ import {
 } from "@react-navigation/drawer";
 import { Ionicons } from "@expo/vector-icons";
 import CustomDrawer from "../components/CustomDrawer";
-import HomeScreen from "../screens/HomeScreen";
+import TabsNavigator from "./TabsNavigator"; // 👈 Nuevo Tabs con Home y Forecast
 import SettingsScreen from "../screens/SettingsScreen";
 import ProfileStackNavigator from "./ProfileStackNavigator";
 import { DrawerParamList, ParamListBase, RouteProp } from "./types";
@@ -50,21 +50,22 @@ export default function DrawerNavigator() {
         drawerInactiveTintColor: "rgba(142, 119, 99, 0.7)",
       }}
     >
-      {/* Pantalla normal (sin stack) */}
+      {/* Tabs como pantalla principal */}
       <Drawer.Screen
-        name="Tracker Map"
-        component={HomeScreen}
+        name="Dashboard"
+        component={TabsNavigator}
         options={{
           drawerIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="boat" color={color} size={size} />
+            <Ionicons name="apps" color={color} size={size} />
           ),
           headerStyle: { backgroundColor: "#ff8b32" },
           headerTintColor: "white",
-          headerTitle: "Tracker Map",
+          headerTitle: "Vessel Tracker",
+          //headerShown: false, // El Tabs maneja su propio header
         }}
       />
 
-      {/* Pantalla normal (sin stack) */}
+      {/* Pantalla normal */}
       <Drawer.Screen
         name="Settings"
         component={SettingsScreen}
@@ -86,17 +87,6 @@ export default function DrawerNavigator() {
           getDrawerScreenOptions(route, "ProfileMain", "Profile", "person")
         }
       />
-
-      {/* Ejemplo: si mañana agregas otro stack */}
-      {/*
-      <Drawer.Screen
-        name="Orders"
-        component={OrdersStackNavigator}
-        options={({ route }) =>
-          getDrawerScreenOptions(route, "OrdersMain", "Orders", "list")
-        }
-      />
-      */}
     </Drawer.Navigator>
   );
 }
