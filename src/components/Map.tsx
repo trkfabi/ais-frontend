@@ -16,17 +16,35 @@ import { Vessel, Bounds } from "../config/types";
 import VesselAnnotations from "./VesselAnnotations";
 import { fetchVessels } from "../api/Api";
 // @ts-ignore: Ignore missing module for environment variable import
-import { EXPO_PUBLIC_MAPBOX_PK } from "@env";
-import { useDispatch } from "react-redux";
-import { setMapView } from "../store/mapSlice";
+import { EXPO_PUBLIC_MAPBOX_PK, EXPO_PUBLIC_OPENWEATHER_API_KEY } from "@env";
+import { useDispatch, useSelector } from "react-redux";
+import { setMapView, setActiveLayer } from "../store/mapSlice";
+import { RootState } from "../store";
+import MapLegendsComponent from "../components/MapLegendsComponent";
+import type LayerKey from "../components/MapLegendsComponent";
 
 Mapbox.setAccessToken(EXPO_PUBLIC_MAPBOX_PK);
 
 const INITIAL_ZOOM = 12;
-const FALLBACK_CENTER = [40.6464364, -74.0999962]; // NY Harbor
+const FALLBACK_CENTER: GeoJSON.Position = [40.6464364, -74.0999962]; // NY Harbor
 const MINUTES_AGO_ASI_DATA = 2;
 const GPS_RETRY_INTERVAL = 5000; // 5 seconds
 const FETCH_REFRESH_INTERVAL = 1000; // 1 seconds
+
+type LayerKey =
+  | "clouds_new"
+  | "precipitation_new"
+  | "temp_new"
+  | "wind_new"
+  | "pressure_new";
+
+const LAYER_INFO: Record<LayerKey, { label: string; emoji: string }> = {
+  clouds_new: { label: "Clouds", emoji: "☁" },
+  precipitation_new: { label: "Precip", emoji: "🌧" },
+  temp_new: { label: "Temp", emoji: "🌡" },
+  wind_new: { label: "Wind", emoji: "💨" },
+  pressure_new: { label: "Pressure", emoji: "🗜" },
+};
 
 const Map = () => {
   const mapRef = useRef<Mapbox.MapView>(null);
@@ -34,8 +52,6 @@ const Map = () => {
   const [tracking, setTracking] = useState(true);
   const [gpsAvailable, setGpsAvailable] = useState(true);
   const [actualZoom, setActualZoom] = useState(INITIAL_ZOOM);
-  const [actualCenter, setActualCenter] =
-    useState<GeoJSON.Position>(FALLBACK_CENTER);
   const [actualBounds, setActualBounds] = useState<Bounds | null>(null);
   const [userLocation, setUserLocation] = useState<GeoJSON.Position | null>(
     null
@@ -48,8 +64,10 @@ const Map = () => {
   const prevCenter = useRef<GeoJSON.Position | null>(null);
   const prevZoom = useRef<number | null>(null);
   const pulseAnimation = useRef(new Animated.Value(1)).current;
+  const buttonOpacity = useRef(new Animated.Value(1)).current;
 
   const dispatch = useDispatch();
+  const activeLayer = useSelector((state: RootState) => state.map.activeLayer);
 
   // Calculate initial bounds when user location is obtained
   useEffect(() => {
@@ -83,8 +101,6 @@ const Map = () => {
     }
   }, [userLocation]);
 
-  const buttonOpacity = useRef(new Animated.Value(1)).current;
-
   const {
     data: vessels = [],
     isLoading,
@@ -92,10 +108,7 @@ const Map = () => {
   } = useQuery<Vessel[]>({
     queryKey: ["vessels", actualBounds],
     queryFn: async () => {
-      //console.log("Fetching vessels...", actualBounds);
-      const data = await fetchVessels(actualBounds!, MINUTES_AGO_ASI_DATA);
-      //console.log("Fetched vessels:", data.length);
-      return data;
+      return await fetchVessels(actualBounds!, MINUTES_AGO_ASI_DATA);
     },
     enabled: !!actualBounds,
     refetchInterval: FETCH_REFRESH_INTERVAL,
@@ -117,7 +130,7 @@ const Map = () => {
           cameraRef.current.setCamera({
             centerCoordinate: currentPosition,
             zoomLevel: actualZoom,
-            animationDuration: 1000,
+            animationDuration: 0,
           });
         }
 
@@ -233,7 +246,6 @@ const Map = () => {
         prevCenter.current[1] !== center[1] ||
         prevZoom.current !== zoom
       ) {
-        setActualCenter(center);
         setActualZoom(zoom);
 
         // Guardar en Redux
@@ -302,6 +314,7 @@ const Map = () => {
           ref={cameraRef}
           zoomLevel={INITIAL_ZOOM}
           centerCoordinate={userLocation ?? FALLBACK_CENTER}
+          animationDuration={0}
         />
         <Mapbox.Images
           images={{
@@ -317,6 +330,7 @@ const Map = () => {
           </Mapbox.PointAnnotation>
         )}
 
+        {/* Vessels */}
         {actualZoom >= 12 && (
           <VesselAnnotations
             key="vessels-stable" // Key estable para evitar re-mounting
@@ -324,6 +338,25 @@ const Map = () => {
             onVesselPress={handleVesselPress}
           />
         )}
+
+        {/* Layers OWM: */}
+        {(Object.keys(LAYER_INFO) as LayerKey[]).map((key) => {
+          const tileUrl = `https://tile.openweathermap.org/map/${key}/{z}/{x}/{y}.png?appid=${EXPO_PUBLIC_OPENWEATHER_API_KEY}`;
+          return (
+            <Mapbox.RasterSource
+              key={key}
+              id={`${key}-source`}
+              tileUrlTemplates={[tileUrl]}
+              tileSize={256}
+            >
+              <Mapbox.RasterLayer
+                id={`${key}-layer`}
+                sourceID={`${key}-source`}
+                style={{ rasterOpacity: activeLayer === key ? 0.7 : 0 }}
+              />
+            </Mapbox.RasterSource>
+          );
+        })}
       </Mapbox.MapView>
       {selectedVessel && (
         <View style={styles.callout}>
@@ -359,6 +392,28 @@ const Map = () => {
           <Text style={styles.gpsWarningText}>Waiting for GPS signal...</Text>
         </View>
       )}
+
+      {/* OWM layers */}
+      <View style={styles.layerButtons}>
+        {Object.entries(LAYER_INFO).map(([key, { label, emoji }]) => (
+          <TouchableOpacity
+            key={key}
+            onPress={() =>
+              dispatch(setActiveLayer(activeLayer === key ? null : key))
+            }
+            style={[
+              styles.toggleButton,
+              activeLayer === key && { backgroundColor: "green" },
+            ]}
+          >
+            <Text style={styles.buttonText}>
+              {emoji} {label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <MapLegendsComponent activeLayer={activeLayer as LayerKey | null} />
 
       {/* Center button and tracking state */}
       <View
@@ -510,6 +565,15 @@ const styles = StyleSheet.create({
     borderColor: "#007AFF",
     opacity: 0.4,
   },
+  layerButtons: {
+    position: "absolute",
+    top: 50,
+    right: 5,
+    flexDirection: "column",
+    gap: 5,
+  },
+  toggleButton: { backgroundColor: "#ff8b32", padding: 8, borderRadius: 6 },
+  buttonText: { color: "white", fontWeight: "bold" },
 });
 
 export default Map;
