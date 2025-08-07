@@ -7,7 +7,8 @@ export type LayerKey =
   | "precipitation_new"
   | "temp_new"
   | "wind_new"
-  | "pressure_new";
+  | "pressure_new"
+  | "waves_new";
 
 // Exact OWM color stops (left to right)
 const layerLegends: Record<LayerKey, { colors: string[]; labels: string[] }> = {
@@ -30,6 +31,10 @@ const layerLegends: Record<LayerKey, { colors: string[]; labels: string[] }> = {
   pressure_new: {
     colors: ["#0000ff", "#00ffff", "#00ff00", "#ffff00", "#ff0000"],
     labels: ["980hPa", "1000hPa", "1015hPa", "1030hPa", "1050hPa"],
+  },
+  waves_new: {
+    colors: ["#0000ff", "#00ffff", "#00ff00", "#ffff00", "#ff0000"],
+    labels: ["0 m", "0.5 m", "1 m", "3 m", "5 m"],
   },
 };
 

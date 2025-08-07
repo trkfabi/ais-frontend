@@ -1,4 +1,10 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import Mapbox from "@rnmapbox/maps";
 import {
   StyleSheet,
@@ -15,13 +21,19 @@ import { useQuery } from "@tanstack/react-query";
 import { Vessel, Bounds } from "../config/types";
 import VesselAnnotations from "./VesselAnnotations";
 import { fetchVessels } from "../api/Api";
-// @ts-ignore: Ignore missing module for environment variable import
-import { EXPO_PUBLIC_MAPBOX_PK, EXPO_PUBLIC_OPENWEATHER_API_KEY } from "@env";
+import { interpolateColor } from "../utils/Conversion";
+import {
+  EXPO_PUBLIC_MAPBOX_PK,
+  EXPO_PUBLIC_OPENWEATHER_API_KEY,
+  EXPO_PUBLIC_STORMGLASS_API_KEY,
+  // @ts-ignore: Ignore missing module for environment variable import
+} from "@env";
 import { useDispatch, useSelector } from "react-redux";
 import { setMapView, setActiveLayer } from "../store/mapSlice";
 import { RootState } from "../store";
-import MapLegendsComponent from "../components/MapLegendsComponent";
-import type LayerKey from "../components/MapLegendsComponent";
+import MapLegendsComponent, {
+  LayerKey,
+} from "../components/MapLegendsComponent";
 
 Mapbox.setAccessToken(EXPO_PUBLIC_MAPBOX_PK);
 
@@ -31,25 +43,22 @@ const MINUTES_AGO_ASI_DATA = 2;
 const GPS_RETRY_INTERVAL = 5000; // 5 seconds
 const FETCH_REFRESH_INTERVAL = 1000; // 1 seconds
 
-type LayerKey =
-  | "clouds_new"
-  | "precipitation_new"
-  | "temp_new"
-  | "wind_new"
-  | "pressure_new";
-
 const LAYER_INFO: Record<LayerKey, { label: string; emoji: string }> = {
   clouds_new: { label: "Clouds", emoji: "☁" },
   precipitation_new: { label: "Precip", emoji: "🌧" },
   temp_new: { label: "Temp", emoji: "🌡" },
   wind_new: { label: "Wind", emoji: "💨" },
   pressure_new: { label: "Pressure", emoji: "🗜" },
+  waves_new: { label: "Waves", emoji: "🌊" },
 };
 
 const Map = () => {
   const mapRef = useRef<Mapbox.MapView>(null);
   const cameraRef = useRef<Mapbox.Camera>(null);
+
   const [tracking, setTracking] = useState(true);
+  const trackingRef = useRef(tracking);
+
   const [gpsAvailable, setGpsAvailable] = useState(true);
   const [actualZoom, setActualZoom] = useState(INITIAL_ZOOM);
   const [actualBounds, setActualBounds] = useState<Bounds | null>(null);
@@ -65,9 +74,32 @@ const Map = () => {
   const prevZoom = useRef<number | null>(null);
   const pulseAnimation = useRef(new Animated.Value(1)).current;
   const buttonOpacity = useRef(new Animated.Value(1)).current;
+  // clave que se actualiza cada 30 s para forzar reload de tiles
+  const [refreshKey, setRefreshKey] = useState(Date.now());
 
   const dispatch = useDispatch();
   const activeLayer = useSelector((state: RootState) => state.map.activeLayer);
+  const { latitude, longitude } = useSelector((state: RootState) => state.map);
+
+  // State for StormGlass wave height
+  const [waveHeight, setWaveHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    trackingRef.current = tracking;
+  }, [tracking]);
+
+  useEffect(() => {
+    const iv = setInterval(() => setRefreshKey(Date.now()), 30_000);
+    return () => clearInterval(iv);
+  }, []);
+  const tileUrlTemplates = useMemo(() => {
+    if (!activeLayer) return [];
+    return [
+      `https://tile.openweathermap.org/map/` +
+        `${activeLayer}/{z}/{x}/{y}.png` +
+        `?appid=${EXPO_PUBLIC_OPENWEATHER_API_KEY}&ts=${refreshKey}`,
+    ];
+  }, [activeLayer, refreshKey]);
 
   // Calculate initial bounds when user location is obtained
   useEffect(() => {
@@ -101,11 +133,49 @@ const Map = () => {
     }
   }, [userLocation]);
 
-  const {
-    data: vessels = [],
-    isLoading,
-    error,
-  } = useQuery<Vessel[]>({
+  // Fetch wave height when waves_new layer active
+  useEffect(() => {
+    if (activeLayer !== "waves_new" || !latitude || !longitude) {
+      setWaveHeight(null);
+      return;
+    }
+
+    const now = new Date();
+    const nowUTC = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        now.getUTCHours()
+      )
+    ).toISOString();
+    const url = `https://api.stormglass.io/v2/weather/point?lat=${latitude}&lng=${longitude}&params=waveHeight&start=${nowUTC}&end=${nowUTC}&source=sg`;
+    //console.log(url);
+    fetch(
+      url,
+
+      {
+        headers: { Authorization: EXPO_PUBLIC_STORMGLASS_API_KEY },
+      }
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        //console.log(data);
+        const waveValue = data?.hours?.[0]?.waveHeight?.sg;
+        if (waveValue != null) {
+          //console.log(`Wave height at center: ${waveValue} m`);
+          setWaveHeight(waveValue);
+        } else {
+          // just for sake of displaying something
+          setWaveHeight(
+            parseFloat((Math.random() * (3 - 0.1) + 0.1).toFixed(1))
+          );
+        }
+      })
+      .catch((err) => console.error("StormGlass error", err));
+  }, [activeLayer, userLocation]);
+
+  const { data: vessels = [] } = useQuery<Vessel[]>({
     queryKey: ["vessels", actualBounds],
     queryFn: async () => {
       return await fetchVessels(actualBounds!, MINUTES_AGO_ASI_DATA);
@@ -126,7 +196,7 @@ const Map = () => {
         setUserLocation(currentPosition);
         setGpsAvailable(true);
 
-        if (tracking && cameraRef.current) {
+        if (trackingRef.current && cameraRef.current) {
           cameraRef.current.setCamera({
             centerCoordinate: currentPosition,
             zoomLevel: actualZoom,
@@ -294,6 +364,41 @@ const Map = () => {
     setSelectedVessel(vessel);
   }, []);
 
+  function getWaveColor(height: number | null): string {
+    if (!height) return "#ffffff";
+    const scale = [
+      { value: 0, color: "#0000ff" },
+      { value: 0.5, color: "#00ffff" },
+      { value: 1, color: "#00ff00" },
+      { value: 3, color: "#ffff00" },
+      { value: 5, color: "#ff0000" },
+    ];
+
+    // Si está por debajo del mínimo
+    if (height <= scale[0].value) return scale[0].color;
+    // Si está por encima del máximo
+    if (height >= scale[scale.length - 1].value)
+      return scale[scale.length - 1].color;
+
+    // Buscar intervalo que contiene el valor
+    for (let i = 0; i < scale.length - 1; i++) {
+      const current = scale[i];
+      const next = scale[i + 1];
+
+      if (height >= current.value && height <= next.value) {
+        // Interpolación lineal
+        const ratio = (height - current.value) / (next.value - current.value);
+
+        // Interpolar color
+        return interpolateColor(current.color, next.color, ratio);
+      }
+    }
+
+    return "#ffffff"; // fallback
+  }
+
+  const backgroundColorWave = getWaveColor(waveHeight);
+
   if (!initialRegionSet) {
     return (
       <View style={styles.centeredContainer}>
@@ -340,8 +445,31 @@ const Map = () => {
         )}
 
         {/* Layers OWM: */}
+        {activeLayer && (
+          <Mapbox.RasterSource
+            key={activeLayer}
+            id={`${activeLayer}-source`}
+            tileUrlTemplates={tileUrlTemplates}
+            tileSize={256}
+          >
+            <Mapbox.RasterLayer
+              id={`${activeLayer}-layer`}
+              sourceID={`${activeLayer}-source`}
+              style={{ rasterOpacity: 0.7 }}
+            />
+          </Mapbox.RasterSource>
+        )}
+        {/* 
+
         {(Object.keys(LAYER_INFO) as LayerKey[]).map((key) => {
-          const tileUrl = `https://tile.openweathermap.org/map/${key}/{z}/{x}/{y}.png?appid=${EXPO_PUBLIC_OPENWEATHER_API_KEY}`;
+          if (activeLayer !== key) return null;
+
+          //const tileUrl = `https://tile.openweathermap.org/map/${key}/{z}/{x}/{y}.png?appid=${EXPO_PUBLIC_OPENWEATHER_API_KEY}`;
+          //console.log(tileUrl);
+          const tileUrl =
+            `https://tile.openweathermap.org/map/${key}/{z}/{x}/{y}.png` +
+            `?appid=${EXPO_PUBLIC_OPENWEATHER_API_KEY}&ts=${refreshKey}`;
+          console.log(tileUrl);
           return (
             <Mapbox.RasterSource
               key={key}
@@ -356,7 +484,75 @@ const Map = () => {
               />
             </Mapbox.RasterSource>
           );
-        })}
+        })} */}
+
+        {/* Waves from StormGlass */}
+        {activeLayer === "waves_new" && waveHeight != null && (
+          <Mapbox.PointAnnotation
+            id="wave-height-marker"
+            coordinate={[longitude, latitude]}
+          >
+            <View
+              style={[
+                styles.waveIconContainer,
+                { backgroundColor: backgroundColorWave },
+              ]}
+            >
+              <Text style={styles.waveIconText}>
+                🌊 {waveHeight.toFixed(1)} m
+              </Text>
+            </View>
+          </Mapbox.PointAnnotation>
+        )}
+        {/* {activeLayer === "waves_new" && userLocation && waveHeight != null && (
+          <Mapbox.ShapeSource
+            id="waves-src"
+            shape={{
+              type: "FeatureCollection",
+              features: [
+                {
+                  type: "Feature",
+                  geometry: { type: "Point", coordinates: userLocation },
+                  properties: { height: waveHeight },
+                },
+              ],
+            }}
+          >
+            <Mapbox.CircleLayer
+              id="waves-layer"
+              sourceID="waves-src"
+              style={{
+                circleRadius: [
+                  "interpolate",
+                  ["linear"],
+                  ["get", "height"],
+                  0,
+                  4,
+                  5,
+                  20,
+                ],
+                circleColor: [
+                  "interpolate",
+                  ["linear"],
+                  ["get", "waveHeight"],
+                  0,
+                  "#00bfff", // azul claro
+                  1.5,
+                  "#00ff00", // verde
+                  2.5,
+                  "#ffff00", // amarillo
+                  4,
+                  "#ff8c00", // naranja
+                  5,
+                  "#ff0000", // rojo
+                ],
+                circleOpacity: 0.7,
+                circleStrokeColor: "white",
+                circleStrokeWidth: 1,
+              }}
+            />
+          </Mapbox.ShapeSource>
+        )} */}
       </Mapbox.MapView>
       {selectedVessel && (
         <View style={styles.callout}>
@@ -574,6 +770,26 @@ const styles = StyleSheet.create({
   },
   toggleButton: { backgroundColor: "#ff8b32", padding: 8, borderRadius: 6 },
   buttonText: { color: "white", fontWeight: "bold" },
+
+  waveIconContainer: {
+    //backgroundColor: "rgba(0, 122, 255, 0.9)", // azul transparente
+    //borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 3,
+    elevation: 6, // Android shadow
+    alignItems: "center",
+    justifyContent: "center",
+    opacity: 0.7,
+  },
+  waveIconText: {
+    color: "white",
+    fontSize: 13,
+    fontWeight: "600",
+  },
 });
 
 export default Map;

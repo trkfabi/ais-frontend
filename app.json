@@ -13,7 +13,7 @@
       "backgroundColor": "#ff8b32"
     },
     "ios": {
-      "buildNumber": "12",
+      "buildNumber": "14",
       "supportsTablet": true,
       "bundleIdentifier": "com.inzori.example.aisfrontend",
       "infoPlist": {
